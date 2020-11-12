@@ -6,6 +6,7 @@ import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.os.SystemClock;
 import android.util.Log;
@@ -21,10 +22,14 @@ import org.maktab.photogallery.view.activity.PhotoGalleryActivity;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import android.content.res.AssetManager;
+import android.net.Uri;
+import java.io.File;
+import java.io.IOException;
 
 
 public class PollService extends IntentService {
-
+    public static final String NOTIFICATION = "notification";
     private static final String TAG = "PollService";
 
     public static Intent newIntent(Context context) {
@@ -116,23 +121,41 @@ public class PollService extends IntentService {
     }
 
     private void createAndShowNotification() {
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                this,
-                0,
-                PhotoGalleryActivity.newIntent(this),
-                0);
+        AssetManager assetManager = getAssets();
+        Uri notficationSound = Uri.parse("... will be downloaded or use emulator sounds... ");
+        try {
+            String[] fileNames = assetManager.list(NOTIFICATION);
+            for (int i = 0; i < fileNames.length; i++) {
 
-        String channelId = getResources().getString(R.string.channel_id);
-        Notification notification = new NotificationCompat.Builder(this, channelId)
-                .setContentTitle(getResources().getString(R.string.new_pictures_title))
-                .setContentText(getResources().getString(R.string.new_pictures_text))
-                .setSmallIcon(android.R.drawable.ic_menu_report_image)
-                .setContentIntent(pendingIntent)
-                .setAutoCancel(true)
-                .build();
+                String assetPath = NOTIFICATION + File.separator + fileNames[i];
+                notficationSound = Uri.parse(assetPath);
+            }
+            PendingIntent pendingIntent = PendingIntent.getActivity(
+                    this,
+                    0,
+                    PhotoGalleryActivity.newIntent(this),
+                    0);
 
-        NotificationManagerCompat notificationManagerCompat =
-                NotificationManagerCompat.from(this);
-        notificationManagerCompat.notify(1, notification);
+            String channelId = getResources().getString(R.string.channel_id);
+            Notification notification = new NotificationCompat.Builder(this, channelId)
+                    .setContentTitle(getResources().getString(R.string.new_pictures_title))
+                    .setContentText(getResources().getString(R.string.new_pictures_text))
+                    .setSmallIcon(android.R.drawable.ic_menu_report_image)
+                    .setContentIntent(pendingIntent)
+                    .setAutoCancel(true)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setSound(notficationSound)
+                    .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
+                    .setVibrate(new long[]{1000,1000,1000,1000,1000})
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .build();
+
+            NotificationManagerCompat notificationManagerCompat =
+                    NotificationManagerCompat.from(this);
+            notificationManagerCompat.notify(1, notification);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        }
     }
-}
+
